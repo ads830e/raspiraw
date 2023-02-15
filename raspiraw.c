@@ -169,9 +169,10 @@ void modReg(struct mode_def *mode, uint16_t reg, int startBit, int endBit, int v
 #include "adv7282m_modes.h"
 #include "imx219_modes.h"
 #include "imx477_modes.h"
+#include "imx283_modes.h"
 #include "ov5647_modes.h"
 
-const struct sensor_def *sensors[] = { &ov5647, &imx219, &adv7282, &imx477, NULL };
+const struct sensor_def *sensors[] = { &ov5647, &imx219, &adv7282, &imx477, &imx283, NULL };
 
 enum
 {
@@ -392,7 +393,7 @@ const struct sensor_def *probe_sensor(int fd)
 			if (!i2c_rd(fd, sensor->i2c_addr, sensor->i2c_ident_reg, (uint8_t *)&reg,
 				    sensor->i2c_ident_length, sensor))
 			{
-				if (reg == sensor->i2c_ident_value)
+				if (reg == sensor->i2c_ident_value || sensor->i2c_ident_value == 0xFFFF)
 				{
 					vcos_log_error("Found sensor %s at address %02X", sensor->name,
 						       sensor->i2c_addr);
@@ -580,8 +581,8 @@ static void callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer)
 	RASPIRAW_PARAMS_T *cfg = (RASPIRAW_PARAMS_T *)dev->cfg;
 	MMAL_STATUS_T status;
 
-	// vcos_log_error("Buffer %p returned, filled %d, timestamp %llu, flags %04X", buffer, buffer->length,
-	// buffer->pts, buffer->flags);
+	vcos_log_error("Buffer %p returned, filled %d, timestamp %llu, flags %04X", buffer, buffer->length,
+	buffer->pts, buffer->flags);
 	if (cfg->capture)
 	{
 
@@ -622,11 +623,20 @@ static void callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buffer)
 	{
 		int bpp = encoding_to_bpp(port->format->encoding);
 		int pitch = mmal_encoding_width_to_stride(port->format->encoding, port->format->es->video.width);
-
-		vcos_log_error("First metadata line");
-		decodemetadataline(buffer->user_data, bpp);
+		/*
+		printf("First metadata line");
+		uint8_t * frameData = buffer->user_data;
+		for (int m=0;m<buffer->length;m++){
+			printf("%02X ", frameData[m]);
+			if(m % 10 == 0){
+				printf("\n");
+			}
+		}
+		printf("\n");
+		*/
+		//decodemetadataline(buffer->user_data, bpp);
 		vcos_log_error("Second metadata line");
-		decodemetadataline(buffer->user_data + pitch, bpp);
+		//decodemetadataline(buffer->user_data + pitch, bpp);
 	}
 
 	/* Pass the buffers off to any other MMAL sinks. */
@@ -2063,6 +2073,7 @@ int main(int argc, char **argv)
 			}
 			else
 			{
+				memset((void *)mem, 0, output->buffer_size );
 				buffer->data = (void *)vc_handle;
 				buffer->alloc_size = output->buffer_size;
 				buffer->user_data = mem;
