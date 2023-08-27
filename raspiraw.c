@@ -170,9 +170,10 @@ void modReg(struct mode_def *mode, uint16_t reg, int startBit, int endBit, int v
 #include "imx219_modes.h"
 #include "imx477_modes.h"
 #include "imx283_modes.h"
+#include "imx294_modes.h"
 #include "ov5647_modes.h"
 
-const struct sensor_def *sensors[] = { &ov5647, &imx219, &adv7282, &imx477, &imx283, NULL };
+const struct sensor_def *sensors[] = { &ov5647, &imx219, &adv7282, &imx477, &imx283, &imx294, NULL };
 
 enum
 {
